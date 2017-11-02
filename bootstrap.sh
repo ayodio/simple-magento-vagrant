@@ -4,6 +4,7 @@ SAMPLE_DATA=$1
 MAGE_VERSION=$2
 DATA_VERSION=$3
 DOMAIN_NAME=$4
+DEVELOPER_IP=$5
 
 # Update Apt
 # --------------------
@@ -14,7 +15,7 @@ apt-get update
 apt-get install -y apache2
 apt-get install -y php5
 apt-get install -y libapache2-mod-php5
-apt-get install -y php5-mysqlnd php5-curl php5-xdebug php5-gd php5-intl php-pear php5-imap php5-mcrypt php5-ming php5-ps php5-pspell php5-recode php5-sqlite php5-tidy php5-xmlrpc php5-xsl php-soap
+apt-get install -y php5-mysqlnd php5-curl php5-gd php5-intl php-pear php5-imap php5-mcrypt php5-ming php5-ps php5-pspell php5-recode php5-sqlite php5-tidy php5-xmlrpc php5-xsl php-soap php5-cli php5-dev php5-xdebug
 
 php5enmod mcrypt
 
@@ -24,6 +25,19 @@ rm -rf /var/www/magento
 sudo mkdir /vagrant
 sudo mkdir /vagrant/httpdocs
 ln -fs /vagrant/httpdocs /var/www/magento
+
+# Active xdebug
+# --------------------
+XDEBUG_SO=`find /usr/lib/php5/ -name xdebug.so`
+XDEBUG="
+[xdebug]
+xdebug.remote_enable=1
+xdebug.remote_host=$DEVELOPER_IP
+xdebug.remote_port=9000
+xdebug.remote_handler=dbgp
+zend_extension=$XDEBUG_SO"
+
+echo "$XDEBUG" >> /etc/php5/apache2/php.ini
 
 # Replace contents of default Apache vhost
 # --------------------
