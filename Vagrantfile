@@ -5,9 +5,9 @@
 sample_data    = "true"
 mage_version   = "1.6.2.0"
 sample_version = "1.6.1.0"
-domain_name    = "atol-pointretrait"
+domain_name    = "domain-name"
 # IP of developer computer
-my_ip          = "172.16.30.65"
+my_ip          = "192.168.1.1"
 
 Vagrant.configure("2") do |config|
   # All Vagrant configuration is done here. The most common configuration
