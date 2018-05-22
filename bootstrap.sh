@@ -159,26 +159,32 @@ then
     curl -sS https://getcomposer.org/installer | php
     php composer.phar install
 
-#    install_cmd="./bin/magento setup:install \
-#    --db-host=localhost \
-#    --db-name=magentodb \
-#    --db-user=magentouser \
-#    --db-password=password \
-#    --backend-frontname=admin \
-#    --base-url=http://${DOMAIN_NAME}.local/ \
-#    --language=fr_FR \
-#    --timezone=Europe/Paris \
-#    --currency=EUR \
-#    --admin-lastname=Owner \
-#    --admin-firstname=Store \
-#    --admin-email=admin@example.com \
-#    --admin-user=admin \
-#    --admin-password=admin123 \
-#    --cleanup-database \
-#    --use-rewrites=1"
-#
-#    sudo php ${install_cmd}
-    sudo php ./bin/magento cron:install
+    install_cmd="./bin/magento setup:install \
+    --db-host=localhost \
+    --db-name=magentodb \
+    --db-user=magentouser \
+    --db-password=password \
+    --backend-frontname=admin \
+    --base-url=http://${DOMAIN_NAME}.local/ \
+    --language=fr_FR \
+    --timezone=Europe/Paris \
+    --currency=EUR \
+    --admin-lastname=Owner \
+    --admin-firstname=Store \
+    --admin-email=admin@example.com \
+    --admin-user=admin \
+    --admin-password=password123123 \
+    --cleanup-database \
+    --use-rewrites=1"
+
+    sudo chown -R www-data:www-data /vagrant/httpdocs/*
+    sudo chown -R www-data:www-data /vagrant/httpdocs/.*
+    sudo chmod -R 777 /vagrant/httpdocs/
+
+    echo ${install_cmd}
+    sudo -u www-data php ${install_cmd}
+    sudo -u www-data php ./bin/magento cron:install
+    sudo -u www-data php ./bin/magento cron:run
 else
     if [ ! -f "/vagrant/httpdocs/app/etc/local.xml" ]; then
       cd /vagrant/httpdocs
