@@ -2,10 +2,10 @@
 # vi: set ft=ruby :
 
 # To install store sample data
-sample_data    = "false"
+sample_data    = "true"
 mage_version   = "2.2.3"
-sample_version = "1.6.1.0"
-domain_name    = "mag2vagrant"
+sample_version = "2.2.3"
+domain_name    = "domain-name"
 # IP of developer computer
 my_ip          = "192.168.1.1"
 

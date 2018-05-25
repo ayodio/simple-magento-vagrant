@@ -5,10 +5,13 @@ MAGE_VERSION=$2
 DATA_VERSION=$3
 DOMAIN_NAME=$4
 DEVELOPER_IP=$5
+ADMIN_LOGIN=admin
+ADMIN_PASSWORD=Password123
+
 
 # Update Apt
 # --------------------
-apt-get update
+apt-get -q update
 
 # Install Apache & PHP
 # --------------------
@@ -18,10 +21,10 @@ then
 echo "magento1"
 # Magento 1
 # --------------------
-apt-get install -y apache2
-apt-get install -y php5
-apt-get install -y libapache2-mod-php5
-apt-get install -y php5-mysqlnd php5-curl php5-gd php5-intl php-pear php5-imap php5-mcrypt php5-ming php5-ps php5-pspell php5-recode php5-sqlite php5-tidy php5-xmlrpc php5-xsl php-soap php5-cli php5-dev php5-xdebug
+apt-get -q install -y apache2
+apt-get -q install -y php5
+apt-get -q install -y libapache2-mod-php5
+apt-get -q install -y php5-mysqlnd php5-curl php5-gd php5-intl php-pear php5-imap php5-mcrypt php5-ming php5-ps php5-pspell php5-recode php5-sqlite php5-tidy php5-xmlrpc php5-xsl php-soap php5-cli php5-dev php5-xdebug
 php5enmod mcrypt
 fi
 
@@ -30,10 +33,10 @@ then
 echo "magento2"
 # Magento 2
 # --------------------
-apt-get -y update
+apt-get -q -y update
 add-apt-repository ppa:ondrej/php
-apt-get -y update
-apt-get install -y php7.1 libapache2-mod-php7.1 php7.1-common php7.1-gd php7.1-mysql php7.1-mcrypt php7.1-curl php7.1-intl php7.1-xsl php7.1-mbstring php7.1-zip php7.1-bcmath php7.1-iconv php7.1-soap
+apt-get -q -y update
+apt-get -q install -y php7.1 libapache2-mod-php7.1 php7.1-common php7.1-gd php7.1-mysql php7.1-mcrypt php7.1-curl php7.1-intl php7.1-xsl php7.1-mbstring php7.1-zip php7.1-bcmath php7.1-iconv php7.1-soap
 
 ##changer la memory limit à 512
 phpmemory_limit=512M
@@ -116,7 +119,6 @@ mysql -u root -e "FLUSH PRIVILEGES"
   tar -zxf ${MAGE_VERSION}.tar.gz
   if [[ $MAGE_VERSION == 2* ]]
   then
-  echo "magento 2"
   mv magento2-${MAGE_VERSION}/* magento2-${MAGE_VERSION}/.* .
   else
   mv magento-mirror-${MAGE_VERSION}/* magento-mirror-${MAGE_VERSION}/.htaccess .
@@ -132,34 +134,54 @@ mysql -u root -e "FLUSH PRIVILEGES"
 
 # Sample Data
 if [[ $SAMPLE_DATA == "true" ]]; then
-  cd /vagrant
-  if [[ ! -f "/vagrant/assets/magento-sample-data-${DATA_VERSION}.tar.gz" ]]; then
-    # Only download sample data if we need to
-    wget -nv http://mirror.gunah.eu/magento/sample-data/magento-sample-data-${DATA_VERSION}.tar.gz
-    cp magento-sample-data-${DATA_VERSION}.tar.gz assets/.
+  if [[ $MAGE_VERSION == 2* ]]
+  then
+    if [[ ! -f "/vagrant/assets/magento-sample-data-${DATA_VERSION}.tar.gz" ]]; then
+      wget https://github.com/magento/magento2-sample-data/archive/${DATA_VERSION}.tar.gz
+      mv ${DATA_VERSION}.tar.gz /vagrant/assets/magento-sample-data-${DATA_VERSION}.tar.gz
+    fi
+    tar -zxf ../assets/magento-sample-data-2.2.3.tar.gz
+    cp -R magento2-sample-data-${DATA_VERSION}/* .
+    rm -rf magento2-sample-data-${DATA_VERSION}/
+    rmdir magento2-sample-data-${DATA_VERSION}
   else
-    cp assets/magento-sample-data-${DATA_VERSION}.tar.gz .
-  fi
+   cd /vagrant
+   if [[ ! -f "/vagrant/assets/magento-sample-data-${DATA_VERSION}.tar.gz" ]]; then
+     # Only download sample data if we need to
+     wget -nv http://mirror.gunah.eu/magento/sample-data/magento-sample-data-${DATA_VERSION}.tar.gz
+     cp magento-sample-data-${DATA_VERSION}.tar.gz assets/.
+   else
+     cp assets/magento-sample-data-${DATA_VERSION}.tar.gz .
+   fi
 
-  tar -zxf magento-sample-data-${DATA_VERSION}.tar.gz
-  cp -R magento-sample-data-${DATA_VERSION}/media/* httpdocs/media/
-  cp -R magento-sample-data-${DATA_VERSION}/skin/*  httpdocs/skin/
-  mysql -u root magentodb < magento-sample-data-${DATA_VERSION}/magento_sample_data_for_${DATA_VERSION}.sql
-  rm -rf magento-sample-data-${DATA_VERSION}
-  rm magento-sample-data-${DATA_VERSION}.tar.gz
-  sudo chmod 777 -R httpdocs/media/
+   tar -zxf magento-sample-data-${DATA_VERSION}.tar.gz
+   cp -R magento-sample-data-${DATA_VERSION}/media/* httpdocs/media/
+   cp -R magento-sample-data-${DATA_VERSION}/skin/*  httpdocs/skin/
+   mysql -u root magentodb < magento-sample-data-${DATA_VERSION}/magento_sample_data_for_${DATA_VERSION}.sql
+   rm -rf magento-sample-data-${DATA_VERSION}
+   rm magento-sample-data-${DATA_VERSION}.tar.gz
+   sudo chmod 777 -R httpdocs/media/
+ fi
 fi
 
 
 # Run installer
 if [[ $MAGE_VERSION == 2* ]]
 then
-    echo "magento 2"
+    echo "magento 2 - installation"
     cd /vagrant/httpdocs
-    curl -sS https://getcomposer.org/installer | php
-    php composer.phar install
+    # install composer
+    sudo curl -sS https://getcomposer.org/installer | php
+    sudo mv composer.phar /usr/local/bin/composer
 
-    install_cmd="./bin/magento setup:install \
+    sudo chown -R www-data:www-data /vagrant/httpdocs/*
+    sudo chown -R www-data:www-data /vagrant/httpdocs/.*
+    sudo chmod -R 777 /vagrant/httpdocs/
+
+    sudo -u www-data composer require Imaginaerum/magento2-language-fr-fr:*
+    sudo -u www-data composer install
+
+    install_cmd="setup:install \
     --db-host=localhost \
     --db-name=magentodb \
     --db-user=magentouser \
@@ -172,23 +194,19 @@ then
     --admin-lastname=Owner \
     --admin-firstname=Store \
     --admin-email=admin@example.com \
-    --admin-user=admin \
-    --admin-password=password123123 \
+    --admin-user=${ADMIN_LOGIN} \
+    --admin-password=${ADMIN_PASSWORD} \
     --cleanup-database \
     --use-rewrites=1"
 
-    sudo chown -R www-data:www-data /vagrant/httpdocs/*
-    sudo chown -R www-data:www-data /vagrant/httpdocs/.*
-    sudo chmod -R 777 /vagrant/httpdocs/
-
     echo ${install_cmd}
-    sudo -u www-data php ${install_cmd}
-    sudo -u www-data php ./bin/magento cron:install
-    sudo -u www-data php ./bin/magento cron:run
+    sudo -u www-data php /vagrant/httpdocs/bin/magento ${install_cmd}
+    sudo -u www-data php /vagrant/httpdocs/bin/magento cron:install
+    sudo -u www-data php /vagrant/httpdocs/bin/magento cron:run
 else
     if [ ! -f "/vagrant/httpdocs/app/etc/local.xml" ]; then
       cd /vagrant/httpdocs
-      sudo /usr/bin/php -f install.php -- --license_agreement_accepted yes --locale fr_FR --timezone "Europe/Paris" --default_currency EUR --db_host localhost --db_name magentodb --db_user magentouser --db_pass password --url "http://"${DOMAIN_NAME}".local/" --use_rewrites yes --use_secure no --secure_base_url "http://"${DOMAIN_NAME}".local/" --use_secure_admin no --skip_url_validation yes --admin_lastname Owner --admin_firstname Store --admin_email "admin@example.com" --admin_username admin --admin_password password123123
+      sudo /usr/bin/php -f install.php -- --license_agreement_accepted yes --locale fr_FR --timezone "Europe/Paris" --default_currency EUR --db_host localhost --db_name magentodb --db_user magentouser --db_pass password --url "http://"${DOMAIN_NAME}".local/" --use_rewrites yes --use_secure no --secure_base_url "http://"${DOMAIN_NAME}".local/" --use_secure_admin no --skip_url_validation yes --admin_lastname Owner --admin_firstname Store --admin_email "admin@example.com" --admin_username $ADMIN_LOGIN --admin_password $ADMIN_PASSWORD
       /usr/bin/php -f shell/indexer.php reindexall
     fi
 fi
@@ -214,10 +232,11 @@ sudo chown -R www-data:www-data /vagrant/httpdocs/*
 sudo chown -R www-data:www-data /vagrant/httpdocs/.*
 sudo chmod -R 777 /vagrant/httpdocs/
 if [[ $MAGE_VERSION == 2* ]]
+
     then
-        echo "magento 2"
+        sudo -u www-data n98-magerun2.phar customer:create atr+client@atolcd.com $ADMIN_PASSWORD Antoine Trapet
     else
-        n98-magerun.phar customer:create atr+client@atolcd.com password123 Antoine Trapet base
+        n98-magerun.phar customer:create atr+client@atolcd.com $ADMIN_PASSWORD Antoine Trapet base
         n98-magerun.phar dev:merge-js --on --global
         n98-magerun.phar dev:merge-css --on --global
         n98-magerun.phar dev:log --on --global
